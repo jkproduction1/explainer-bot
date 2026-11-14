@@ -50,7 +50,7 @@ const K = (() => {
       p.save(); p.filter = 'blur(120px)'; [[160, 1500, 320, 'rgba(255,60,160,.42)'], [950, 650, 300, 'rgba(40,230,215,.28)'], [880, 1500, 260, 'rgba(150,110,255,.34)']].forEach(([x, y, r, col]) => { p.fillStyle = col; p.beginPath(); p.arc(x, y, r, 0, 7); p.fill(); }); p.restore();
       p.save(); p.globalCompositeOperation = 'lighter'; const s = p.createRadialGradient(-40, 120, 10, -40, 120, 900); s.addColorStop(0, 'rgba(255,220,240,.5)'); s.addColorStop(.25, 'rgba(255,120,200,.16)'); s.addColorStop(1, 'rgba(0,0,0,0)'); p.fillStyle = s; p.fillRect(0, 0, W, H); p.restore();
       for (let i = 0; i < 90; i++) c.stars.push([c.R() * W, i < 3 ? 250 + c.R() * 850 : c.R() * H, 1 + c.R() * 3, .25 + c.R() * .55, c.R() < .5 ? '#fff' : (c.R() < .5 ? P.lav : P.teal), c.R() * 6.28, i < 3]);
-      for (let i = 0; i < 7; i++) c.dust.push([c.R() * W, c.R() * H, 60 + c.R() * 90, .10 + c.R() * .1, c.R() < .5 ? '255,79,163' : '183,155,255', c.R() * 6.28]); }
+      for (let i = 0; i < 7; i++) c.dust.push([c.R() * W, c.R() * H, 60 + c.R() * 90, .05 + c.R() * .06, c.R() < .5 ? '255,79,163' : '183,155,255', c.R() * 6.28]); }
     g.drawImage(c.base, 0, 0);
     c.stars.forEach(([x, y, r, a, col, ph, big]) => { const yy = big ? y - t * 5 : ((y - t * 5) % H + H) % H; g.globalAlpha = a * (.55 + .45 * Math.sin(t * 2 + ph)); g.fillStyle = col; g.beginPath(); g.arc(x, yy, r, 0, 7); g.fill();
       if (big) { const l = 14 + 8 * Math.sin(t * 1.6 + ph); g.save(); g.globalAlpha = .85; glow(g, '#fff', 18); g.strokeStyle = '#fff'; g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(x - l, yy); g.lineTo(x + l, yy); g.moveTo(x, yy - l); g.lineTo(x, yy + l); g.stroke(); g.restore(); } });
@@ -78,8 +78,52 @@ const K = (() => {
       p.save(); glow(p, '#bffff6', 26); p.strokeStyle = 'rgba(200,255,248,.9)'; p.lineWidth = 5; p.beginPath(); p.arc(540, cy, 1051, -Math.PI * .78, -Math.PI * .5); p.stroke(); p.restore(); }
     g.drawImage(c, 0, Math.sin((t || 0) * .5) * 4); }
 
-  // ---- the channel's person. o: x,y,rot,sc, sw (0..1 swollen), blink (0 open..1 closed), mouth (0..1 open), wob (limb sway, radians-ish), alpha
-  function person(g, o) { const x = o.x, y = o.y, rot = o.rot || 0, sc = o.sc || 1, sw = o.sw || 0, wb = o.wob || 0, bl = o.blink || 0, mo = o.mouth == null ? 1 : o.mouth;
+  // ---- facial expressions: all numbers, so K.mixEx(a, b, t) blends smoothly between any two
+  // eye 0 closed .. 1 open .. 1.3 wide | pupil size | brow + worried / - angry | raise brows | mw,mh mouth width,height
+  // (mh 0 = a line) | curve + smile / - frown | puff cheeks 0..1 | sweat 0..1
+  const EX = {
+    neutral: { eye: 1, pupil: 1, brow: 0, raise: 0, mw: 28, mh: 0, curve: .3, puff: 0, sweat: 0 },
+    shock:   { eye: 1.3, pupil: .75, brow: .5, raise: 1, mw: 36, mh: 46, curve: 0, puff: 0, sweat: 0 },
+    scared:  { eye: 1.22, pupil: .65, brow: 1, raise: .6, mw: 46, mh: 20, curve: -.6, puff: 0, sweat: 1 },
+    hold:    { eye: .8, pupil: 1, brow: -.7, raise: -.2, mw: 14, mh: 0, curve: -.3, puff: 1, sweat: 1 },
+    gasp:    { eye: 1.15, pupil: .8, brow: .7, raise: .6, mw: 40, mh: 40, curve: 0, puff: 0, sweat: .6 },
+    faint:   { eye: .42, pupil: 1, brow: .9, raise: .1, mw: 30, mh: 14, curve: 0, puff: 0, sweat: .5 },
+    out:     { eye: 0, pupil: 1, brow: .3, raise: 0, mw: 24, mh: 9, curve: 0, puff: 0, sweat: 0 },
+    relief:  { eye: .85, pupil: 1, brow: .5, raise: .5, mw: 46, mh: 0, curve: 1, puff: 0, sweat: .3 },
+  };
+  function mixEx(a, b, t) { t = CL(t); const o = {}; for (const k in a) o[k] = LERP(a[k], b[k], t); return o; }
+  // face features in head-local units (head centre = origin, head radius = 92)
+  function features(g, e, t) { e = e || EX.neutral; t = t || 0; g.lineCap = 'round';
+    if (e.puff > 0) [-1, 1].forEach(d => { const cg = g.createRadialGradient(d * 60, 26, 4, d * 66, 34, 36 * e.puff + 1); cg.addColorStop(0, '#ffe3ee'); cg.addColorStop(1, '#ffb3cf'); g.fillStyle = cg; g.beginPath(); g.arc(d * 68, 36, 34 * e.puff, 0, 7); g.fill(); });
+    g.save(); g.filter = 'blur(5px)'; g.fillStyle = 'rgba(255,90,160,.75)'; g.beginPath(); g.arc(-56, 36, 15, 0, 7); g.arc(56, 36, 15, 0, 7); g.fill(); g.restore();
+    [-1, 1].forEach(d => { const x = d * 32, y = 5;
+      if (e.eye < .15) { g.strokeStyle = P.ink; g.lineWidth = 6; g.beginPath(); g.arc(x, y - 4, 12, .15, Math.PI - .15); g.stroke(); }
+      else { if (e.eye > 1.04) { g.fillStyle = '#fff'; g.beginPath(); g.arc(x, y, 15 * e.eye, 0, 7); g.fill(); }
+        g.fillStyle = P.ink; g.beginPath(); g.ellipse(x, y, 11 * e.pupil, 11 * e.pupil * Math.min(1, e.eye), 0, 0, 7); g.fill();
+        g.fillStyle = '#fff'; g.beginPath(); g.arc(x - 3, y - 4 * Math.min(1, e.eye), 3.5, 0, 7); g.fill();
+        if (e.eye < .7) { g.strokeStyle = P.ink; g.lineWidth = 5; g.beginPath(); g.moveTo(x - 14, y - 11 * e.eye); g.lineTo(x + 14, y - 11 * e.eye); g.stroke(); } }
+      g.save(); g.translate(x, -22 - e.raise * 9 - (e.eye > 1 ? 6 : 0)); g.rotate(d * e.brow * .45); g.strokeStyle = P.hair; g.lineWidth = 7; g.beginPath(); g.moveTo(-13, 0); g.lineTo(13, 0); g.stroke(); g.restore(); });
+    if (e.mh < 4) { g.strokeStyle = '#7a1850'; g.lineWidth = 7; g.beginPath(); g.moveTo(-e.mw / 2, 57 - e.curve * 5); g.quadraticCurveTo(0, 57 + e.curve * 16, e.mw / 2, 57 - e.curve * 5); g.stroke(); }
+    else { const mg = g.createRadialGradient(0, 62, 2, 0, 57, Math.max(e.mw, e.mh) / 2 + 2); mg.addColorStop(0, '#b0306f'); mg.addColorStop(1, '#4d0c38'); g.fillStyle = mg; g.beginPath(); g.ellipse(0, 57, e.mw / 2, e.mh / 2, 0, 0, 7); g.fill();
+      if (e.mh > 24) { g.save(); g.beginPath(); g.ellipse(0, 57, e.mw / 2, e.mh / 2, 0, 0, 7); g.clip(); g.fillStyle = '#ff6fae'; g.beginPath(); g.ellipse(0, 57 + e.mh * .42, e.mw * .42, e.mh * .3, 0, 0, 7); g.fill(); g.restore(); } }
+    if (e.sweat > 0) { const u = (t * .7) % 1, sx = 74, sy = -44 + u * 46; g.save(); g.globalAlpha *= e.sweat * (1 - u * .6); glow(g, P.teal, 10); g.fillStyle = '#8ff3ea'; g.beginPath(); g.moveTo(sx, sy - 13); g.quadraticCurveTo(sx + 9, sy, sx + 7, sy + 5); g.arc(sx, sy + 5, 7, 0, Math.PI); g.quadraticCurveTo(sx - 9, sy, sx, sy - 13); g.fill(); g.restore(); } }
+
+  // ---- head alone (close-ups). o: x,y, r (radius in px), rot, ex, t, alpha
+  function head(g, o) { const s = o.r / 92, x = o.x, y = o.y, rot = o.rot || 0, box = [x - o.r * 1.5, y - o.r * 1.6, o.r * 3, o.r * 3.2];
+    const T = c => { c.translate(x, y); c.rotate(rot); c.scale(s, s); };
+    const part = (fn, q) => lit(g, c => { c.save(); T(c); fn(c); c.restore(); }, Object.assign({ k: s, box, alpha: o.alpha }, q));
+    part(c => { const hg = c.createRadialGradient(-30, -35, 10, 0, 0, 110); hg.addColorStop(0, '#ffe3ee'); hg.addColorStop(1, '#ffb3cf'); c.fillStyle = hg; c.beginPath(); c.arc(0, 0, 92, 0, 7); c.fill(); }, { dk: 'rgba(190,40,120,.6)', rim: 'rgba(47,230,210,.8)', glow: o.glow, gb: o.gb });
+    part(c => { c.fillStyle = P.hair; c.beginPath(); c.arc(0, -15, 94, Math.PI * 1.02, Math.PI * 1.98); c.quadraticCurveTo(10, -75, -92, -25); c.fill(); }, { shadow: false, hi: 'rgba(190,150,255,.8)', dk: 'rgba(10,0,40,.7)' });
+    g.save(); g.globalAlpha *= o.alpha == null ? 1 : o.alpha; T(g); features(g, o.ex, o.t); g.restore(); }
+
+  // ---- head + small body, for medium close-ups (body ends ~2.45 r under the head centre)
+  function bust(g, o) { const s = o.r / 92, x = o.x, y = o.y, rot = o.rot || 0, box = [x - o.r * 2, y - o.r * 1.6, o.r * 4, o.r * 4.6];
+    lit(g, c => { c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s); c.strokeStyle = P.skin; c.lineWidth = 50; c.lineCap = 'round'; c.beginPath(); c.moveTo(-78, 150); c.quadraticCurveTo(-150, 170, -150 - (o.arms || 0) * 20, 110 - (o.arms || 0) * 70); c.moveTo(78, 150); c.quadraticCurveTo(150, 170, 150 + (o.arms || 0) * 20, 110 - (o.arms || 0) * 70); c.stroke(); c.restore(); }, { k: s, box, alpha: o.alpha, dk: 'rgba(190,40,120,.6)', rim: 'rgba(47,230,210,.8)' });
+    lit(g, c => { c.save(); c.translate(x, y); c.rotate(rot); c.scale(s, s); const tg = c.createLinearGradient(-100, 80, 100, 230); tg.addColorStop(0, '#5ff5e4'); tg.addColorStop(1, '#16b8a8'); c.fillStyle = tg; c.beginPath(); c.roundRect(-95, 70, 190, 155, 60); c.fill(); c.restore(); }, { k: s, box, alpha: o.alpha, dk: 'rgba(0,70,110,.65)' });
+    head(g, o); }
+
+  // ---- the channel's person. o: x,y,rot,sc, sw (0..1 swollen), ex (expression, see EX), wob (limb sway), t, alpha
+  function person(g, o) { const x = o.x, y = o.y, rot = o.rot || 0, sc = o.sc || 1, sw = o.sw || 0, wb = o.wob || 0;
     const r = 520 * sc * (1 + sw * .2), box = [x - r, y - r, 2 * r, 2 * r];
     const T = c => { c.translate(x, y); c.rotate(rot); c.scale(sc, sc); c.lineCap = 'round'; };
     const part = (fn, q) => lit(g, c => { c.save(); T(c); fn(c); c.restore(); }, Object.assign({ k: sc, box, alpha: o.alpha }, q));
@@ -89,11 +133,7 @@ const K = (() => {
     part(c => { const tg = c.createLinearGradient(-100, -80, 100, 170); tg.addColorStop(0, '#5ff5e4'); tg.addColorStop(1, '#16b8a8'); c.fillStyle = tg; c.beginPath(); c.roundRect(-95 - sw * 34, -80, 190 + sw * 68, 250 + sw * 20, 70 + sw * 30); c.fill(); }, { dk: 'rgba(0,70,110,.65)' });
     part(c => { const hg = c.createRadialGradient(-30, -210, 10, 0, -175, 110); hg.addColorStop(0, '#ffe3ee'); hg.addColorStop(1, '#ffb3cf'); c.fillStyle = hg; c.beginPath(); c.arc(0, -175, 92 + sw * 16, 0, 7); c.fill(); }, { dk: 'rgba(190,40,120,.6)', rim: 'rgba(47,230,210,.8)' });
     part(c => { c.fillStyle = P.hair; c.beginPath(); c.arc(0, -190, 94 + sw * 16, Math.PI * 1.02, Math.PI * 1.98); c.quadraticCurveTo(10, -250, -92 - sw * 16, -200); c.fill(); }, { shadow: false, hi: 'rgba(190,150,255,.8)', dk: 'rgba(10,0,40,.7)' });
-    g.save(); g.globalAlpha *= o.alpha == null ? 1 : o.alpha; T(g);
-    [[-32, -170], [32, -170]].forEach(([a, b]) => { if (bl > .6) { g.strokeStyle = P.ink; g.lineWidth = 6; g.beginPath(); g.arc(a, b - 4, 12, .15, Math.PI - .15); g.stroke(); }
-      else { g.fillStyle = P.ink; g.beginPath(); g.ellipse(a, b, 11, 11 * (1 - bl * .8), 0, 0, 7); g.fill(); g.fillStyle = '#fff'; g.beginPath(); g.arc(a - 3, b - 4, 3.5, 0, 7); g.fill(); } });
-    g.filter = 'blur(5px)'; g.fillStyle = 'rgba(255,90,160,.75)'; g.beginPath(); g.arc(-55, -140, 15 + sw * 8, 0, 7); g.arc(55, -140, 15 + sw * 8, 0, 7); g.fill(); g.filter = 'none';
-    const mg = g.createRadialGradient(0, -112, 2, 0, -118, 26); mg.addColorStop(0, '#b0306f'); mg.addColorStop(1, '#4d0c38'); g.fillStyle = mg; g.beginPath(); g.ellipse(0, -118, 14 + 6 * mo, 6 + 18 * mo, 0, 0, 7); g.fill(); g.restore(); }
+    g.save(); g.globalAlpha *= o.alpha == null ? 1 : o.alpha; T(g); g.translate(0, -175); g.scale(1 + sw * .17, 1 + sw * .17); features(g, o.ex, o.t); g.restore(); }
 
   function helmet(g, x, y, rot, s, alpha) { const T = c => { c.translate(x, y); c.rotate(rot); c.scale(s, s); }, box = [x - 200 * s, y - 200 * s, 400 * s, 400 * s];
     lit(g, c => { c.save(); T(c); c.fillStyle = '#cfc4f5'; c.beginPath(); c.roundRect(-70, 104, 140, 34, 14); c.fill(); c.restore(); }, { k: .6 * s, box, alpha });
@@ -104,5 +144,5 @@ const K = (() => {
   // slow camera move: everything drawn inside fn is zoomed by z around (cx, cy)
   function cam(g, z, cx, cy, fn) { g.save(); g.translate(cx, cy); g.scale(z, z); g.translate(-cx, -cy); fn(); g.restore(); }
 
-  return { W, H, P, CL, LERP, EIO, E3, EBK, seg, R0, mk, glow, lit, sphere, bubble, bg, post, earth, person, helmet, cam };
+  return { W, H, P, CL, LERP, EIO, E3, EBK, seg, R0, mk, glow, lit, sphere, bubble, bg, post, earth, EX, mixEx, features, head, bust, person, helmet, cam };
 })();

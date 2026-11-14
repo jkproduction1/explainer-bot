@@ -20,6 +20,12 @@ repo Variables IG_USERNAME / TIKTOK_USERNAME).
 4. Last line, always: **"Follow for one every day."** (end card pill, lime).
 - Voice (ElevenLabs) + word-by-word captions + music under the voice, always.
 - Nothing ever stands still: slow camera push-in, floating, drifting particles, twinkling stars.
+- **A cut every 2–3 s** (Jan, 2026-11-14: attention). A 25 s video = 10–12 shots, cut on the voice (`CUTS` = word indices in
+  scenes.js). **Change the camera distance from shot to shot**: wide → close → detail → wide; go close whenever the emotion
+  matters, because a face is read before anything else. Inside each shot keep a slow push-in or drift.
+- **The face acts.** The character's expression follows the situation and blends smoothly (`K.EX`: neutral, shock, scared,
+  hold, gasp, faint, out, relief; `K.mixEx(a, b, t)`); add new expressions to the kit when a topic needs them.
+- Stills of every shot go to Jan BEFORE the full render (he wants still references first for anything new).
 
 ## 3. Facts (hard rule)
 - Every number and claim is checked against reliable sources (space agencies, universities, Britannica, peer-reviewed or

@@ -49,10 +49,13 @@ def _names(a: dict) -> set:
 
 
 def account_ids() -> dict:
-    """{"instagram": id, "tiktok": id}, but ONLY for the usernames pinned in config. Never 'the first account'."""
-    want = {"instagram": config.IG_USERNAME, "tiktok": config.TIKTOK_USERNAME}
-    if not all(want.values()):
-        raise RuntimeError("IG_USERNAME / TIKTOK_USERNAME are not set (repo Variables). Refusing to post.")
+    """{"instagram": id[, "tiktok": id]}, but ONLY for the usernames pinned in config. Never 'the first account'.
+    Instagram is required; TikTok is added only when TIKTOK_USERNAME is set (Jan starts with Instagram only)."""
+    want = {"instagram": config.IG_USERNAME}
+    if not want["instagram"]:
+        raise RuntimeError("IG_USERNAME is not set (repo Variables). Refusing to post.")
+    if config.TIKTOK_USERNAME:
+        want["tiktok"] = config.TIKTOK_USERNAME
     data = _z("GET", "/accounts")
     accounts = data.get("accounts") or data.get("data") or (data if isinstance(data, list) else [])
     out = {}
@@ -101,14 +104,15 @@ def schedule(folder: Path, when: datetime, trial: bool = False) -> dict:
         psd["trialParams"] = {"graduationStrategy": "SS_PERFORMANCE"}
     body = {"content": caption, "mediaItems": [{"type": "video", "url": video_url}],
             "scheduledFor": when.isoformat(),
-            "platforms": [{"platform": "instagram", "accountId": ids["instagram"], "platformSpecificData": psd},
-                          {"platform": "tiktok", "accountId": ids["tiktok"]}],
-            "tiktokSettings": {
-                "privacy_level": "PUBLIC_TO_EVERYONE", "allow_comment": True, "allow_duet": True, "allow_stitch": True,
-                "video_made_with_ai": True,          # honest AI disclosure (AI voice)
-                "commercialContentType": "none",     # paid deals -> "brand_content"
-                "content_preview_confirmed": True, "express_consent_given": True,
-                **({"video_cover_image_url": cover} if cover else {})}}
+            "platforms": [{"platform": "instagram", "accountId": ids["instagram"], "platformSpecificData": psd}]}
+    if "tiktok" in ids:
+        body["platforms"].append({"platform": "tiktok", "accountId": ids["tiktok"]})
+        body["tiktokSettings"] = {
+            "privacy_level": "PUBLIC_TO_EVERYONE", "allow_comment": True, "allow_duet": True, "allow_stitch": True,
+            "video_made_with_ai": True,          # honest AI disclosure (AI voice)
+            "commercialContentType": "none",     # paid deals -> "brand_content"
+            "content_preview_confirmed": True, "express_consent_given": True,
+            **({"video_cover_image_url": cover} if cover else {})}
     return _z("POST", "/posts", json=body)
 
 
@@ -189,7 +193,8 @@ def main():
             posted.append({"name": name, "when": when.isoformat(), "post_id": (res.get("post") or {}).get("_id")})
             clear_buttons()
             kind = "🧪 Trial reel" if action == "tr" else "✅ Naplánováno"
-            telegram.notify(f"{kind} (Instagram @{config.IG_USERNAME} + TikTok @{config.TIKTOK_USERNAME}): "
+            where = f"Instagram @{config.IG_USERNAME}" + (f" + TikTok @{config.TIKTOK_USERNAME}" if config.TIKTOK_USERNAME else "")
+            telegram.notify(f"{kind} ({where}): "
                             f"{when:%d.%m. %H:%M}\n{name}")
         except Exception as e:
             pending[name] = info  # keep it, so a later tap can retry

@@ -60,7 +60,7 @@ jobs:
           POST_SLOTS: ${{ vars.POST_SLOTS || '18:00' }}
           POST_NOW: ${{ github.event.inputs.now || 'false' }}
         run: |
-          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$ZERNIO_API_KEY" ] || [ -z "$IG_USERNAME" ] || [ -z "$TIKTOK_USERNAME" ]; then echo "not configured yet"; exit 0; fi
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$ZERNIO_API_KEY" ] || [ -z "$IG_USERNAME" ]; then echo "not configured yet"; exit 0; fi
           python -u -m bot.poster
       - name: Save state
         if: always()

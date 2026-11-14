@@ -8,7 +8,7 @@ DATA = ROOT / "data"
 # Shown in every Telegram message so it can never be mixed up with the other channel.
 CHANNEL_LABEL = "🔬 EXPLAINER"
 
-# SAFETY: the accounts this repo is allowed to post to. Posting is refused until BOTH are set and found in Zernio,
+# SAFETY: the accounts this repo is allowed to post to. Posting is refused until IG_USERNAME is set and found in Zernio (TikTok joins once TIKTOK_USERNAME is set),
 # so a video can never land on another account that happens to be connected to the same Zernio workspace.
 # Set them in GitHub: Settings > Secrets and variables > Actions > Variables (IG_USERNAME, TIKTOK_USERNAME), without "@".
 IG_USERNAME = os.getenv("IG_USERNAME", "").strip().lstrip("@").lower()

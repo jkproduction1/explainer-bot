@@ -64,7 +64,7 @@ Repo Variables IG_USERNAME / TIKTOK_USERNAME = oohgoodquestion (Jan sets them on
 ## 6. Posting and safety
 - Nothing is ever posted without Jan's ✅ in Telegram. Claude never posts, never touches API keys or secrets.
 - Every Telegram message starts with **🔬 EXPLAINER** so it cannot be mixed up with the first channel.
-- The poster posts ONLY to the usernames in the repo Variables IG_USERNAME / TIKTOK_USERNAME and refuses otherwise
+- Instagram only for now (Jan, 2026-11-14); TikTok joins when the Variable TIKTOK_USERNAME is set. The poster posts ONLY to the pinned usernames and refuses otherwise
   (never "the first account in Zernio").
 - Captions: 1–2 simple sentences + the question, max 4 hashtags. TikTok AI disclosure stays on (AI voice).
 - Default slot 18:00 Prague (Variable POST_SLOTS, comma separated, to change or add a second one).

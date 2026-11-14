@@ -22,6 +22,9 @@ Repo Variables IG_USERNAME / TIKTOK_USERNAME = oohgoodquestion (Jan sets them on
 - **A cut every 2–3 s** (Jan, 2026-11-14: attention). A 25 s video = 10–12 shots, cut on the voice (`CUTS` = word indices in
   scenes.js). **Change the camera distance from shot to shot**: wide → close → detail → wide; go close whenever the emotion
   matters, because a face is read before anything else. Inside each shot keep a slow push-in or drift.
+- **Show the whole character** (Jan, 2026-11-14). When a person is in the shot, the whole body is in frame (head to feet),
+  not a cut-off bust or a floating head. Exceptions only where the fact needs a detail (a mouth, an eye, an x-ray of the
+  lungs) or a short emotional close-up; even then prefer a tighter framing of the full figure over a cropped body.
 - **The face acts.** The character's expression follows the situation and blends smoothly (`K.EX`: neutral, shock, scared,
   hold, gasp, faint, out, relief; `K.mixEx(a, b, t)`); add new expressions to the kit when a topic needs them.
 - Stills of every shot go to Jan BEFORE the full render (he wants still references first for anything new).

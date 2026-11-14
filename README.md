@@ -1,4 +1,4 @@
-# explainer-bot
+# explainer-bot (@oohgoodquestion)
 
 Druhý, oddělený kanál: krátká vzdělávací vysvětlení světa (věda, vesmír, Země, tělo, „co by se stalo, kdyby…“)
 v jednom stylu. Samostatné repo, s @theaitoolfinds nesdílí nic kromě stejného typu motoru.
@@ -16,8 +16,8 @@ Pravidla a postup: **BRAIN.md**. Stavebnice vzhledu: `hf/kit/kit.js` (jen kód, 
 **Variables**
 | Název | Hodnota |
 |---|---|
-| `IG_USERNAME` | jméno IG účtu bez @ |
-| `TIKTOK_USERNAME` | jméno TikTok účtu bez @ |
+| `IG_USERNAME` | `oohgoodquestion` |
+| `TIKTOK_USERNAME` | `oohgoodquestion` |
 | `POST_SLOTS` | volitelné, např. `18:00` nebo `09:00,18:00` (čas Praha) |
 
 Dokud nejsou vyplněné oba účty, nic se nepostuje (pojistka: bot postuje jen na tyhle dva účty).

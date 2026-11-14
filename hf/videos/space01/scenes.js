@@ -94,6 +94,11 @@ const SHOTS = [
       g.save(); K.glow(g, 'rgba(4,0,22,.6)', 60); const wg = g.createLinearGradient(640, 0, 1140, 0); wg.addColorStop(0, '#f3eeff'); wg.addColorStop(.12, '#d9cffa'); wg.addColorStop(1, '#8f7fd8'); g.fillStyle = wg; g.fillRect(640, -200, 700, 2400); g.restore();
       g.fillStyle = 'rgba(255,255,255,.8)'; g.fillRect(640, -200, 10, 2400); g.strokeStyle = 'rgba(90,60,170,.35)'; g.lineWidth = 6; [200, 1440].forEach(y => { g.beginPath(); g.moveTo(650, y); g.lineTo(1140, y); g.stroke(); });
       [[700, 260], [700, 1380], [1010, 260], [1010, 1380]].forEach(([x, y]) => K.sphere(g, x, y, 16, '#cfc4f5', '#7d6bc4'));
+      // porthole, handrail and status lights so the wall reads as a station
+      g.save(); g.beginPath(); g.arc(860, 330, 78, 0, 7); g.clip(); const pg = g.createLinearGradient(780, 250, 940, 410); pg.addColorStop(0, '#3b1d86'); pg.addColorStop(1, '#0a0424'); g.fillStyle = pg; g.fillRect(770, 240, 180, 180); g.fillStyle = 'rgba(255,255,255,.22)'; g.beginPath(); g.moveTo(780, 240); g.lineTo(840, 240); g.lineTo(800, 420); g.lineTo(770, 420); g.fill(); g.restore();
+      K.lit(g, c => { c.strokeStyle = '#8f7fd8'; c.lineWidth = 22; c.beginPath(); c.arc(860, 330, 84, 0, 7); c.stroke(); }, { k: .7, box: [740, 210, 240, 240], dk: 'rgba(40,10,110,.8)' });
+      K.lit(g, c => { c.strokeStyle = '#fff8ff'; c.lineWidth = 20; c.lineCap = 'round'; c.beginPath(); c.moveTo(700, 1200); c.lineTo(700, 1130); c.lineTo(1000, 1130); c.lineTo(1000, 1200); c.stroke(); }, { k: .5, box: [660, 1090, 380, 150], dk: 'rgba(90,60,170,.8)' });
+      [0, 1, 2].forEach(i => K.sphere(g, 760 + i * 60, 1290, 13, i === Math.floor(t * 3) % 3 ? P.lime : '#6f5fc0', i === Math.floor(t * 3) % 3 ? '#5d9a00' : '#3a2b8a'));
       g.save(); K.glow(g, P.lime, 90); const hg = g.createRadialGradient(880, 830, 20, 880, 830, 260); hg.addColorStop(0, '#f4ffd0'); hg.addColorStop(.6, '#c6ff3a'); hg.addColorStop(1, '#5d9a00'); g.fillStyle = hg; g.beginPath(); g.arc(880, 830, 240, 0, 7); g.fill(); g.restore();
       K.lit(g, c => { c.strokeStyle = '#8f7fd8'; c.lineWidth = 44; c.beginPath(); c.arc(880, 830, 250, 0, 7); c.stroke(); }, { k: 1.2, box: [580, 530, 600, 600], dk: 'rgba(40,10,110,.8)' });
       const px = 300 + 240 * p, py = 900 - 40 * p;

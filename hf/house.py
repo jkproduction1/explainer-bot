@@ -18,7 +18,7 @@ from pathlib import Path
 
 import numpy as np
 
-HANDLE = ""   # e.g. "@why.explained" once Jan has created the accounts; empty = no handle on the end card
+HANDLE = "@oohgoodquestion"   # shown under the end-card pill
 
 
 class Film:

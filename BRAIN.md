@@ -1,9 +1,8 @@
 # BRAIN.md: how Claude makes the explainer channel's videos (v1, 2026-11-14). Read fully before every run.
 
 Second, separate brand of Jan (first one: @theaitoolfinds, repo jkproduction1/theaitoolfinds-bot — never touch that repo from here).
-Account name: **not chosen yet** (candidates: @why.explained, @tinyexplainers, @explainedinstyle, @the.why.daily; Jan checks
-availability, creates IG + TikTok, connects them in Zernio and tells us the name → put it in `hf/house.py` HANDLE and in the
-repo Variables IG_USERNAME / TIKTOK_USERNAME).
+Account: **@oohgoodquestion** (display name "Ooh, Good Question"; Jan chose it 2026-11-14) on Instagram + TikTok.
+Repo Variables IG_USERNAME / TIKTOK_USERNAME = oohgoodquestion (Jan sets them once the accounts are connected in Zernio).
 
 ## 1. What we post
 - Short educational explanations of the world: science, space, Earth, the human body, "what would happen if…".

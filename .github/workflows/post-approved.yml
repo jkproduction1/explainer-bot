@@ -1,0 +1,74 @@
+name: Post approved videos
+# Reads the ✅ / 🧪 / ❌ taps from Telegram and schedules approved videos through Zernio.
+# Posts ONLY to the accounts in the repo Variables IG_USERNAME / TIKTOK_USERNAME; does nothing until secrets + variables exist.
+on:
+  # No cron yet on purpose: a private repo pays Actions minutes, and a 30-min poll would burn ~3000 min a month.
+  # Taps arrive instantly through the Cloudflare worker (cloudflare/worker.js), or run this workflow by hand.
+  # schedule:
+  #   - cron: "*/30 * * * *"
+  workflow_dispatch:
+    inputs:
+      now:
+        description: "Post approved videos right away (not at the next slot)"
+        default: "false"
+      update:
+        description: "Telegram update (base64), sent by the Cloudflare worker"
+        default: ""
+permissions:
+  contents: write
+jobs:
+  enqueue:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Save the Telegram update to the queue
+        env:
+          TG_UPDATE: ${{ github.event.inputs.update }}
+        run: |
+          [ -z "$TG_UPDATE" ] && exit 0
+          mkdir -p data/tg_queue
+          f="data/tg_queue/$(date -u +%s%N)-${GITHUB_RUN_ID}.b64"
+          printf '%s' "$TG_UPDATE" > "$f"
+          git config user.name "explainer-bot"
+          git config user.email "bot@users.noreply.github.com"
+          git add -f "$f" && git commit -qm "tg queue [skip ci]"
+          for i in 1 2 3 4 5 6; do git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0; sleep $((i * 3)); done
+          exit 1
+  post:
+    needs: enqueue
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: poster
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - run: git pull -q origin main || true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q requests
+      - name: Read approvals and schedule posts
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          ZERNIO_API_KEY: ${{ secrets.ZERNIO_API_KEY }}
+          IG_USERNAME: ${{ vars.IG_USERNAME }}
+          TIKTOK_USERNAME: ${{ vars.TIKTOK_USERNAME }}
+          POST_SLOTS: ${{ vars.POST_SLOTS || '18:00' }}
+          POST_NOW: ${{ github.event.inputs.now || 'false' }}
+        run: |
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$ZERNIO_API_KEY" ] || [ -z "$IG_USERNAME" ] || [ -z "$TIKTOK_USERNAME" ]; then echo "not configured yet"; exit 0; fi
+          python -u -m bot.poster
+      - name: Save state
+        if: always()
+        run: |
+          git config user.name "explainer-bot"
+          git config user.email "bot@users.noreply.github.com"
+          for f in data/telegram.json data/pending.json data/posted.json; do [ -e "$f" ] && git add -f "$f"; done
+          git add -A data/tg_queue 2>/dev/null || true
+          git diff --cached --quiet && exit 0
+          git commit -qm "poster state [skip ci]"
+          for i in 1 2 3; do git pull -q --rebase -X theirs origin main && git push -q origin HEAD:main && exit 0; sleep 5; done

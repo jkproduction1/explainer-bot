@@ -1,0 +1,29 @@
+name: Voice (ElevenLabs)
+# Renders every script in data/voice_queue.json and puts <name>.mp3 + <name>.json (word timings) on the `videos` branch.
+on: workflow_dispatch
+permissions:
+  contents: write
+jobs:
+  voice:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - env:
+          ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: |
+          sudo apt-get update -qq || true; sudo apt-get install -y -qq ffmpeg
+          pip install -q -r requirements.txt
+          mkdir -p logs
+          python -u -m bot.voice_samples 2>&1 | tail -n 60 | tee logs/voice.log || true
+          git config user.name "explainer-bot"
+          git config user.email "bot@users.noreply.github.com"
+          if git fetch -q origin videos 2>/dev/null; then git worktree add -q -B videos ../vb origin/videos
+          else git worktree add -q --detach ../vb && (cd ../vb && git checkout -q --orphan videos && git rm -rfq . ); fi
+          mkdir -p ../vb/voice-samples && cp -r out/voice-samples/. ../vb/voice-samples/ 2>/dev/null || true
+          cd ../vb && git add -A && (git diff --cached --quiet || git commit -qm "voice") && git push -q origin HEAD:videos
+          cd $GITHUB_WORKSPACE && git add -f logs/voice.log && git commit -qm "voice log [skip ci]" && git pull -q --rebase origin main && git push -q origin HEAD:main || true

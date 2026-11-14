@@ -1,0 +1,38 @@
+name: Release video to Telegram
+# Sends a finished video (a folder on the `videos` branch, made by hf/publish.py) to Jan for approval. Posts nothing.
+on:
+  workflow_dispatch:
+    inputs:
+      folder:
+        description: "Folder on the videos branch, e.g. 2026-11-15_0900_space01"
+        required: true
+permissions:
+  contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q requests
+      - env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          IN_FOLDER: ${{ github.event.inputs.folder }}
+        run: |
+          git fetch -q origin +videos:refs/remotes/origin/videos && git worktree add -q ../vb origin/videos
+          python -u -m bot.release "$IN_FOLDER" ../vb
+      - name: Save state
+        if: always()
+        run: |
+          git config user.name "explainer-bot"
+          git config user.email "bot@users.noreply.github.com"
+          for f in data/telegram.json data/pending.json; do [ -e "$f" ] && git add -f "$f"; done
+          git diff --cached --quiet && exit 0
+          git commit -qm "pending [skip ci]"
+          for i in 1 2 3; do git pull -q --rebase -X theirs origin main && git push -q origin HEAD:main && exit 0; sleep 5; done
